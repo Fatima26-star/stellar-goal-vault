@@ -510,12 +510,16 @@ app.get('/api/campaigns', async (req: Request, res: Response, next: express.Next
 
   const cached = await getCampaignCacheEntry(cacheKey);
   if (cached) {
-    const cachedData = JSON.parse(cached);
+    const cachedData = JSON.parse(cached) as {
+      data: CampaignListItem[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    };
     res.setHeader('Cache-Control', 'max-age=30');
     res.setHeader('X-Cache', 'HIT');
     res.setHeader('X-Total-Count', String(cachedData.pagination.total));
     res.setHeader('Content-Type', 'application/json');
-    res.send(cached);
+    // The cached payload is shared, but correlation IDs are per request.
+    res.send(JSON.stringify({ ...cachedData, requestId: (req as RequestWithId).requestId }));
     return;
   }
 
@@ -565,7 +569,13 @@ app.get('/api/campaigns', async (req: Request, res: Response, next: express.Next
   res.setHeader('X-Cache', 'MISS');
   res.setHeader('X-Total-Count', String(totalCount));
   res.setHeader('Content-Type', 'application/json');
-  res.send(responseBody);
+  res.send(
+    JSON.stringify({
+      data,
+      pagination: { total: totalCount, page, limit, totalPages },
+      requestId: (req as RequestWithId).requestId,
+    }),
+  );
   } catch (error) {
     next(error);
   }
