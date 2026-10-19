@@ -68,6 +68,8 @@ fn fixture_with(initialize: bool) -> Fixture {
         &(env.ledger().timestamp() + DURATION),
         &String::from_str(&env, "auth"),
         &0_i128,
+        &soroban_sdk::vec![&env],
+        &0_u32,
     );
 
     Fixture {
@@ -202,6 +204,7 @@ fn claim_requires_exactly_the_creator_signature() {
     f.client.claim(&f.campaign_id, &f.creator);
     assert_sole_signer(&f, &f.creator, "claim");
     assert!(f.client.get_campaign(&f.campaign_id).claimed);
+    assert_eq!(balance(&f, &f.creator), TARGET);
 }
 
 #[test]
